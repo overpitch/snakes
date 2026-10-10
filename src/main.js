@@ -36,12 +36,14 @@ let paused = false;
 let world = new World({ difficulty: 'normal' }); // the title screen plays bots in the background
 const slots = [null, null];          // joined devices: { device, row }
 let players = [];
+let mode = 'versus';                 // this game's mode: 'solo' with one player, else save.mode
 let feed = [];                       // [{ text, time }]
 const titleCam = { x: 0, y: 0, zoom: 0.8 };
 let titleFollow = null;
 
 function startGame() {
-  world = new World({ difficulty: save.difficulty, mode: save.mode });
+  mode = slots.filter(Boolean).length === 1 ? 'solo' : save.mode;
+  world = new World({ difficulty: save.difficulty, mode });
   feed = [];
   paused = false;
   players = [];
@@ -59,7 +61,7 @@ function startGame() {
 
 function spawnPlayer(p, mass) {
   // In co-op, land near your teammate.
-  const mate = save.mode === 'coop' ? players.find((q) => q !== p && q.snake?.alive)?.snake : null;
+  const mate = mode === 'coop' ? players.find((q) => q !== p && q.snake?.alive)?.snake : null;
   const near = mate ? { x: mate.headX, y: mate.headY } : null;
   const s = world.spawnSnake({ name: `P${p.index + 1}`, skin: playerSkin(save.looks[p.index]), mass, player: p.index }, near);
   s.shieldUntil = world.time + CONFIG.spawnShield;
@@ -151,9 +153,9 @@ function handleEvents() {
 
   for (const p of players) {
     if (p.snake.alive) p.best = Math.max(p.best, lengthOf(p.snake));
-    if (save.mode === 'versus' && p.best > save.best) save.best = p.best;
+    if (mode !== 'coop' && p.best > save.best) save.best = p.best;
   }
-  if (save.mode === 'coop') save.teamBest = Math.max(save.teamBest, teamScore());
+  if (mode === 'coop') save.teamBest = Math.max(save.teamBest, teamScore());
 }
 
 const teamScore = () => players.reduce((sum, p) => sum + (p.snake.alive ? lengthOf(p.snake) : 0), 0);
@@ -205,7 +207,7 @@ function render(dt) {
   }
 
   const labels = new Map(players.map((p) => [p.snake, { text: `P${p.index + 1}`, color: p.labelColor }]));
-  const g = { world, players, mode: save.mode, feed, u, respawnDelay: CONFIG.respawnDelay };
+  const g = { world, players, mode, feed, u, respawnDelay: CONFIG.respawnDelay };
   for (const p of players) {
     const view = viewFor(p);
     if (!paused) updateCam(p.cam, p.snake, view, dt);
@@ -218,7 +220,7 @@ function render(dt) {
     ctx.fillStyle = 'rgba(255,255,255,0.18)';
     ctx.fillRect(W / 2 - 1, 0, 2, H);
   }
-  if (save.mode === 'coop') drawTeamScore(ctx, W, u, teamScore(), save.teamBest);
+  if (mode === 'coop') drawTeamScore(ctx, W, u, teamScore(), save.teamBest);
   if (paused) drawPause(ctx, W, H);
 }
 

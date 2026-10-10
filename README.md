@@ -8,7 +8,7 @@ made to play in Microsoft Edge on an Xbox. See [DESIGN.md](DESIGN.md).
 Open the game's web address in Edge on the Xbox, turn on both controllers, and:
 
 1. Each player presses **A** to join and picks a look (stick ↕ chooses the row, ↔ changes it)
-2. **X** switches Versus / Co-op, **Y** switches Easy / Normal / Hard
+2. **X** switches Versus / Co-op, **Y** switches Easy / Normal / Hard (only one player joined = Solo, full screen)
 3. Press **☰ (Menu)** to play
 
 In game: **left stick** steers, **A** or **RT** boosts, **☰** pauses.

@@ -18,7 +18,7 @@ need very little reading.
 | Input | Xbox controllers via the Gamepad API (keyboard only as a dev fallback) |
 | Screen | Split-screen: left/right halves, each camera follows one snake. One player = full screen |
 | Arena | Big circular arena with ~14 AI snakes, like slither.io |
-| Modes | Chosen per game on the title screen: **Versus** or **Co-op** |
+| Modes | **Solo** when one player joins (full screen); with two, pick **Versus** or **Co-op** on the title screen |
 | Versus | Free-for-all: players can eat each other, just like the bots |
 | Co-op | Players **pass through each other**; a **shared team score** (combined length) with a team record |
 | Game end | **Endless**: play until you quit, chasing high scores / the team record |

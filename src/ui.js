@@ -106,9 +106,11 @@ export function drawTitle(ctx, W, H, st) {
     x += cw + fs * 0.08;
   }
 
-  // Mode + difficulty pickers (any player: X and Y).
+  // Mode + difficulty pickers (any player: X and Y). One player joined = solo, nothing to pick.
   const rowY = H * 0.255;
-  pickerPill(ctx, W / 2 - 330 * u, rowY, u, 'X', MODES.map((m) => MODE[m]), MODES.indexOf(st.mode));
+  const joined = st.slots.filter(Boolean).length;
+  if (joined === 1) pickerPill(ctx, W / 2 - 330 * u, rowY, u, null, [MODE.solo], 0);
+  else pickerPill(ctx, W / 2 - 330 * u, rowY, u, 'X', MODES.map((m) => MODE[m]), MODES.indexOf(st.mode));
   pickerPill(ctx, W / 2 + 330 * u, rowY, u, 'Y', DIFFICULTIES.map((d) => DIFFICULTY[d]), DIFFICULTIES.indexOf(st.difficulty));
 
   // Player cards.
@@ -119,9 +121,9 @@ export function drawTitle(ctx, W, H, st) {
   }
 
   // Bottom prompt.
-  const anyJoined = st.slots.some(Boolean);
   const pulse = 1 + Math.sin(t * 5) * 0.04;
-  if (anyJoined) rich(ctx, ['Press ', { btn: 'menu' }, ' to play!'], W / 2, H * 0.93, 54 * u * pulse, '#fff');
+  if (joined === 1) rich(ctx, ['Press ', { btn: 'menu' }, ' to play solo!'], W / 2, H * 0.93, 54 * u * pulse, '#fff');
+  else if (joined === 2) rich(ctx, ['Press ', { btn: 'menu' }, ' to play!'], W / 2, H * 0.93, 54 * u * pulse, '#fff');
   else if (st.padCount === 0) text(ctx, 'Turn on a controller, then press any button', W / 2, H * 0.93, 38 * u, '#c9d1e0');
   else rich(ctx, ['Press ', { btn: 'A' }, ' to join'], W / 2, H * 0.93, 54 * u * pulse, '#fff');
 
@@ -132,13 +134,13 @@ export function drawTitle(ctx, W, H, st) {
 }
 
 function pickerPill(ctx, cx, cy, u, btn, options, selected) {
-  const ow = 190 * u, oh = 76 * u, pad = 10 * u;
-  const w = options.length * ow + pad * 2 + 80 * u;
+  const ow = 190 * u, oh = 76 * u, pad = 10 * u, bw = btn ? 80 * u : 0;
+  const w = options.length * ow + pad * 2 + bw;
   const x = cx - w / 2;
   panel(ctx, x, cy - oh / 2 - pad, w, oh + pad * 2, (oh + pad * 2) / 2, 'rgba(255,255,255,0.07)', 'rgba(255,255,255,0.15)', 2);
-  button(ctx, btn, x + pad + 34 * u, cy, 26 * u);
+  if (btn) button(ctx, btn, x + pad + 34 * u, cy, 26 * u);
   options.forEach((o, i) => {
-    const ox = x + pad + 80 * u + i * ow;
+    const ox = x + pad + bw + i * ow;
     if (i === selected) panel(ctx, ox, cy - oh / 2, ow - 6 * u, oh, oh / 2, 'rgba(255,255,255,0.92)');
     const col = i === selected ? '#0b0e15' : 'rgba(220,228,240,0.6)';
     text(ctx, o.icon, ox + 40 * u, cy + 2 * u, 36 * u, col);
@@ -204,7 +206,7 @@ export function drawHud(ctx, view, p, g) {
   const len = s?.alive ? lengthOf(s) : p.lastLength;
   text(ctx, `P${p.index + 1}`, x + m, y + h - m - 74 * u, 34 * u, p.labelColor, { align: 'left', weight: 900, stroke: 6 * u });
   text(ctx, fmt(len), x + m, y + h - m - 26 * u, 62 * u, '#fff', { align: 'left', weight: 900, stroke: 8 * u });
-  if (g.mode === 'versus') {
+  if (g.mode !== 'coop') {
     text(ctx, `🏆 ${fmt(p.best)}`, x + m + 4 * u, y + h - m + 18 * u, 24 * u, 'rgba(220,228,240,0.8)', { align: 'left', weight: 700, stroke: 5 * u });
   }
 
@@ -213,7 +215,7 @@ export function drawHud(ctx, view, p, g) {
   drawMinimap(ctx, x + w - m - mr, y + h - m - mr, mr, world, g.players, p);
 
   // Top-right: leaderboard (versus only; co-op shows the team score instead).
-  if (g.mode === 'versus') drawLeaderboard(ctx, x + w - m, y + m, u, g);
+  if (g.mode !== 'coop') drawLeaderboard(ctx, x + w - m, y + m, u, g);
 
   // Top-left: recent happenings.
   let fy = y + m + 16 * u;

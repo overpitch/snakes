@@ -38,6 +38,7 @@ export const MODES = ['versus', 'coop'];
 export const MODE = {
   versus: { label: 'Versus', icon: '⚔️' },
   coop:   { label: 'Co-op',  icon: '🤝' },
+  solo:   { label: 'Solo',   icon: '🐍' }, // automatic when only one player joins
 };
 
 // ---- Customization
