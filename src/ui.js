@@ -122,14 +122,14 @@ export function drawTitle(ctx, W, H, st) {
 
   // Bottom prompt.
   const pulse = 1 + Math.sin(t * 5) * 0.04;
-  if (st.countdown !== null) {
+  if (st.needHelp) {
+    drawControllerHelp(ctx, W / 2, H * 0.915, u);
+  } else if (st.countdown !== null) {
     const n = Math.ceil(st.countdown);
     text(ctx, `Starting in ${n}…`, W / 2, H * 0.915, 60 * u * (1 + (st.countdown % 1) * 0.15), '#fff', { weight: 900 });
     if (joined === 1) rich(ctx, ['Want a friend? Press ', { btn: 'A' }, ' to join too!'], W / 2, H * 0.97, 28 * u, 'rgba(220,228,240,0.8)');
   } else if (joined > 0) {
     rich(ctx, ['Press ', { btn: 'A' }, ' when you\'re ready!'], W / 2, H * 0.93, 54 * u * pulse, '#fff');
-  } else if (st.padCount === 0) {
-    drawControllerHelp(ctx, W / 2, H * 0.915, u);
   } else {
     rich(ctx, ['Press ', { btn: 'A' }, ' to join'], W / 2, H * 0.93, 54 * u * pulse, '#fff');
   }
@@ -137,7 +137,7 @@ export function drawTitle(ctx, W, H, st) {
   const rec = [];
   if (st.save.best) rec.push(`🏆 Best ${fmt(st.save.best)}`);
   if (st.save.teamBest) rec.push(`🤝 Team best ${fmt(st.save.teamBest)}`);
-  if (rec.length && st.countdown === null && !(joined === 0 && st.padCount === 0)) {
+  if (rec.length && st.countdown === null && !st.needHelp) {
     text(ctx, rec.join('     '), W / 2, H * 0.985, 24 * u, 'rgba(201,209,224,0.75)');
   }
 }

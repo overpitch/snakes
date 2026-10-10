@@ -82,8 +82,24 @@ function toTitle() {
 
 // ---- Update
 
-function updateTitle() {
+/** A device that isn't anyone's yet pressed A: give it a player whose controller vanished, if any. */
+function takeOver(owners) {
+  const taken = [];
   for (const id of input.ids()) {
+    if (owners.some((o) => o.device === id) || !input.pressed(id, 'a')) continue;
+    const orphan = owners.find((o) => !input.state(o.device));
+    if (!orphan) break;
+    orphan.device = id;
+    taken.push(id);
+    input.rumble(id, 120, 0.2, 0.5);
+  }
+  return taken;
+}
+
+function updateTitle() {
+  const taken = takeOver(slots.filter(Boolean));
+  for (const id of input.ids()) {
+    if (taken.includes(id)) continue;
     const i = slots.findIndex((s) => s?.device === id);
     if (i < 0) {
       if (input.pressed(id, 'a')) {
@@ -120,7 +136,13 @@ function updateTitle() {
 }
 
 function updatePlay() {
+  // A controller vanished (e.g. Edge left "Use game controls"): hold everything until it's back
+  // or another controller presses A to take that snake over.
+  takeOver(players);
+  if (players.some((p) => !input.state(p.device))) return false;
+
   if (players.some((p) => input.pressed(p.device, 'y') || input.pressed(p.device, 'menu'))) paused = !paused;
+  if (input.back) paused = true; // browser Back (B in browsing mode) pauses instead of leaving
   if (paused) {
     if (players.some((p) => input.pressed(p.device, 'b') || input.pressed(p.device, 'view'))) toTitle();
     return false;
@@ -217,6 +239,8 @@ function render(dt) {
       t: performance.now() / 1000, slots, looks: save.looks, mode: save.mode, difficulty: save.difficulty,
       save, padCount: input.padCount(), deviceLabel: (id) => input.label(id),
       countdown: startAt === null ? null : Math.max(0, startAt - performance.now() / 1000),
+      needHelp: input.browsingMode() || slots.some((sl) => sl && !input.state(sl.device))
+        || (input.padCount() === 0 && !slots.some(Boolean)),
     });
     return;
   }

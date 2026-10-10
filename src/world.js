@@ -179,6 +179,7 @@ export class World {
         }
       }
       s.step(dt);
+      this.slideAlongWall(s);
     }
 
     this.rebuildGrids();
@@ -200,6 +201,30 @@ export class World {
 
     // Slots changed (deaths / spawns): rebuild so AI queries next tick see the right snakes.
     this.rebuildGrids();
+  }
+
+  /** The red border is a wall, not a death: keep the head inside and turn it to run along it. */
+  slideAlongWall(s) {
+    const lim = this.R - s.radius;
+    const hx = s.headX, hy = s.headY;
+    const d = Math.hypot(hx, hy);
+    if (d <= lim) return;
+    const nx = hx / d, ny = hy / d; // outward normal
+    const h = s.hist;
+    h[h.length - 2] = nx * lim;
+    h[h.length - 1] = ny * lim;
+    const cx = Math.cos(s.angle), cy = Math.sin(s.angle);
+    const out = cx * nx + cy * ny;
+    if (out > 0) {
+      let tx = cx - out * nx, ty = cy - out * ny;
+      if (Math.hypot(tx, ty) < 0.05) {
+        // Head-on into the wall: pick the side the stick is leaning toward.
+        const side = Math.cos(s.targetAngle) * -ny + Math.sin(s.targetAngle) * nx >= 0 ? 1 : -1;
+        tx = -ny * side; ty = nx * side;
+      }
+      s.angle = Math.atan2(ty, tx);
+    }
+    s.layout();
   }
 
   eat(dt) {
@@ -229,13 +254,7 @@ export class World {
     for (const s of this.snakes) {
       if (!s.alive) continue;
       const hx = s.headX, hy = s.headY, r = s.radius;
-      const shielded = s.shieldUntil > this.time;
-      if (hx * hx + hy * hy > (this.R - r * 0.5) ** 2) {
-        if (shielded) { s.angle = s.targetAngle = Math.atan2(-hy, -hx); continue; }
-        deaths.push([s, null]);
-        continue;
-      }
-      if (shielded) continue;
+      if (s.shieldUntil > this.time) continue;
       const hit = this.segmentHit(hx, hy, r * 0.75, s);
       if (hit) deaths.push([s, hit]);
     }

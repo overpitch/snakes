@@ -217,25 +217,8 @@ export function drawSnake(ctx, s, vb, t) {
     ctx.globalCompositeOperation = 'source-over';
   }
 
-  const cols = skin.colors.map(bodySprite);
-  const spot = bodySprite(skin.colors[1] ?? '#ffffff');
-  const shift = (t * 14) | 0;
-  for (let i = n - 1; i >= 0; i--) {
-    const x = segs[2 * i], y = segs[2 * i + 1];
-    if (x < vb.l - r || x > vb.r + r || y < vb.t - r || y > vb.b + r) continue;
-    const rr = i > n - 8 ? r * (0.55 + (0.45 * (n - 1 - i)) / 7) : r; // tapered tail
-    let spr;
-    switch (skin.pattern) {
-      case 'stripes': spr = cols[((i / 3) | 0) % cols.length]; break;
-      case 'rainbow': spr = bodySprite(RAINBOW[(((i + shift) / 2) | 0) % 12]); break;
-      default: spr = cols[0];
-    }
-    ctx.drawImage(spr, x - rr, y - rr, rr * 2, rr * 2);
-    if (skin.pattern === 'spots' && i % 5 === 2) {
-      const sr = rr * 0.42;
-      ctx.drawImage(spot, x - sr, y - sr, sr * 2, sr * 2);
-    }
-  }
+  if (skin.pattern === 'fishnet') drawFishnetBody(ctx, s, vb);
+  else drawPatternedBody(ctx, s, vb, t);
 
   drawFace(ctx, s, t);
   drawHat(ctx, s, t);
@@ -251,6 +234,100 @@ export function drawSnake(ctx, s, vb, t) {
       ctx.lineWidth = 3;
       ctx.stroke();
     }
+  }
+}
+
+const taperedRadius = (r, i, n) => (i > n - 8 ? r * (0.55 + (0.45 * (n - 1 - i)) / 7) : r);
+
+/** Shiny balls from tail to head: stripes, spots, solid or rainbow. */
+function drawPatternedBody(ctx, s, vb, t) {
+  const r = s.radius, n = s.segCount, segs = s.segs, skin = s.skin;
+  const cols = skin.colors.map(bodySprite);
+  const spot = bodySprite(skin.colors[1] ?? '#ffffff');
+  const shift = (t * 14) | 0;
+  for (let i = n - 1; i >= 0; i--) {
+    const x = segs[2 * i], y = segs[2 * i + 1];
+    if (x < vb.l - r || x > vb.r + r || y < vb.t - r || y > vb.b + r) continue;
+    const rr = taperedRadius(r, i, n);
+    let spr;
+    switch (skin.pattern) {
+      case 'stripes': spr = cols[((i / 3) | 0) % cols.length]; break;
+      case 'rainbow': spr = bodySprite(RAINBOW[(((i + shift) / 2) | 0) % 12]); break;
+      default: spr = cols[0];
+    }
+    ctx.drawImage(spr, x - rr, y - rr, rr * 2, rr * 2);
+    if (skin.pattern === 'spots' && i % 5 === 2) {
+      const sr = rr * 0.42;
+      ctx.drawImage(spot, x - sr, y - sr, sr * 2, sr * 2);
+    }
+  }
+}
+
+/**
+ * Black fishnet stocking: a see-through diamond mesh laid out in body coordinates
+ * (distance along the spine x offset across it), so it bends with the snake.
+ */
+function drawFishnetBody(ctx, s, vb) {
+  const r = s.radius, n = s.segCount, segs = s.segs, sp = s.spacing;
+
+  // Clip to the body's outline (union of segment circles).
+  ctx.save();
+  ctx.beginPath();
+  for (let i = 0; i < n; i++) {
+    const x = segs[2 * i], y = segs[2 * i + 1], rr = taperedRadius(r, i, n);
+    if (x < vb.l - r || x > vb.r + r || y < vb.t - r || y > vb.b + r) continue;
+    ctx.moveTo(x + rr, y);
+    ctx.arc(x, y, rr, 0, Math.PI * 2);
+  }
+  ctx.clip();
+
+  // Sheer dark base so the snake reads as a shape.
+  const bb = s.bbox;
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+  ctx.fillRect(bb.l, bb.t, bb.r - bb.l, bb.b - bb.t);
+
+  // Point at arc length `d` from the head, offset `v` sideways from the spine.
+  const at = (d, v) => {
+    const f = Math.max(0, Math.min(n - 1.001, d / sp)), i = Math.floor(f), k = f - i;
+    const x = segs[2 * i] + (segs[2 * i + 2] - segs[2 * i]) * k;
+    const y = segs[2 * i + 1] + (segs[2 * i + 3] - segs[2 * i + 1]) * k;
+    const a = Math.max(0, i - 1), b = Math.min(n - 1, i + 2);
+    let dx = segs[2 * a] - segs[2 * b], dy = segs[2 * a + 1] - segs[2 * b + 1];
+    const len = Math.hypot(dx, dy) || 1;
+    dx /= len; dy /= len;
+    return [x - dy * v, y + dx * v];
+  };
+
+  const P = r * 0.75; // diamond size
+  const rows = Math.floor(((n - 1) * sp) / (P / 2));
+  ctx.beginPath();
+  for (let k = 0; k < rows; k++) {
+    const d0 = k * (P / 2), d1 = d0 + P / 2;
+    const [cx, cy] = at(d0, 0);
+    if (cx < vb.l - r * 2 || cx > vb.r + r * 2 || cy < vb.t - r * 2 || cy > vb.b + r * 2) continue;
+    const off = k % 2 ? P / 2 : 0;
+    for (let v = -r * 1.5 + off; v <= r * 1.5; v += P) {
+      for (const dv of [-P / 2, P / 2]) {
+        const [x0, y0] = at(d0, v);
+        const [x1, y1] = at(d1, v + dv);
+        ctx.moveTo(x0, y0);
+        ctx.lineTo(x1, y1);
+      }
+    }
+  }
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = '#000';
+  ctx.lineWidth = Math.max(2, r * 0.16);
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(150, 150, 160, 0.45)'; // a little sheen so black-on-dark still shows
+  ctx.lineWidth = Math.max(1, r * 0.05);
+  ctx.stroke();
+  ctx.restore();
+
+  // Solid black stocking band behind the head, and a black head.
+  const band = bodySprite('#161616');
+  for (let i = Math.min(4, n - 1); i >= 0; i--) {
+    ctx.drawImage(band, segs[2 * i] - r, segs[2 * i + 1] - r, r * 2, r * 2);
   }
 }
 
@@ -417,8 +494,8 @@ export function previewSnake(skin, t, cx, cy, len, r) {
   const angle = Math.atan2(segs[1] - segs[3], segs[0] - segs[2]);
   return {
     id: 7, skin, segs, segCount: n, radius: r, angle, targetAngle: angle,
-    boosting: false, shieldUntil: 0,
+    spacing: len / (n - 1), boosting: false, shieldUntil: 0,
     headX: segs[0], headY: segs[1],
-    bbox: { l: -1e9, t: -1e9, r: 1e9, b: 1e9 },
+    bbox: { l: cx - len / 2 - r, t: cy - r * 2, r: cx + len / 2 + r, b: cy + r * 2 },
   };
 }

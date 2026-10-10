@@ -24,6 +24,7 @@ need very little reading.
 | Game end | **Endless**: play until you quit, chasing high scores / the team record |
 | Bot difficulty | **Easy / Normal / Hard** picked on the title screen |
 | Dying | **Respawn with a head start**: come back right away at a medium size, not tiny |
+| Arena edge | The red border is a **wall you slide along**, never a death |
 | Death style | Cute: the snake **pops** into glowing food. Nothing violent |
 | Customization | Each player picks **colors & pattern**, a **face/eyes**, and a **hat/accessory** |
 | Look | **Neon glow** like slither.io: dark hex grid, glowing pellets, shiny striped snakes |
@@ -46,14 +47,14 @@ so the game never depends on them.
 
 | | Easy | Normal | Hard |
 |---|---|---|---|
-| Bot reactions | Slow, often miss danger | Decent | Sharp |
-| Bots hunt players | Never | Sometimes | Often, and boost to cut you off |
-| Bot speed | Slower than players | Same | Same |
-| Bot sizes | Mostly small | Mixed | Some big ones |
+| Bot reactions | A bit slow, sometimes miss danger | Decent | Sharp |
+| Bots hunt players | Rarely, never boost at you | Sometimes | Often, and boost to cut you off |
+| Bot speed | A little slower than players | Same | Same |
+| Bot sizes | Small to medium | Mixed | Some big ones |
 
 ## Customization
 
-- **Colors & patterns:** preset combos; patterns are stripes, spots, rainbow and solid
+- **Colors & patterns:** preset combos (incl. Black); patterns are stripes, spots, solid, rainbow, and **fishnet** (a see-through black stocking mesh, by request for Grandpa)
 - **Faces:** happy, angry, sleepy, googly, sunglasses
 - **Hats:** none, crown, party hat, top hat, cap, bow, flower
 - Chosen with the stick + A on a big visual picker; remembered between sessions

@@ -29,8 +29,8 @@ export const DIFFICULTIES = ['easy', 'normal', 'hard'];
 export const DIFFICULTY = {
   //        think: seconds between bot decisions; look: how far ahead they check for danger
   //        hunt: how keen they are to cut others off; speed: bot speed vs players
-  easy:   { label: 'Easy',   icon: '🐢', bots: 12, think: 0.35, look: 0.6,  hunt: 0,   speed: 0.85, maxMass: 60 },
-  normal: { label: 'Normal', icon: '🐍', bots: 14, think: 0.16, look: 1,    hunt: 0.7, speed: 1,    maxMass: 160 },
+  easy:   { label: 'Easy',   icon: '🐢', bots: 13, think: 0.24, look: 0.85, hunt: 0.55, speed: 0.95, maxMass: 100 },
+  normal: { label: 'Normal', icon: '🐍', bots: 14, think: 0.14, look: 1,    hunt: 0.9, speed: 1,    maxMass: 180 },
   hard:   { label: 'Hard',   icon: '🔥', bots: 16, think: 0.08, look: 1.25, hunt: 1.3, speed: 1,    maxMass: 320 },
 };
 
@@ -52,12 +52,14 @@ export const PALETTES = [
   { label: 'Mint',      colors: ['#7dffd4', '#14b88a'] },
   { label: 'Cherry',    colors: ['#ff4d6d', '#ffffff'] },
   { label: 'Midnight',  colors: ['#8a7dff', '#2b2bd9'] },
+  { label: 'Black',     colors: ['#2a2a2a', '#0c0c0c'] },
 ];
 export const PATTERNS = [
   { id: 'stripes', label: 'Stripes' },
   { id: 'spots',   label: 'Spots' },
   { id: 'solid',   label: 'Solid' },
   { id: 'rainbow', label: 'Rainbow' },
+  { id: 'fishnet', label: 'Fishnet' }, // see-through black stocking mesh (always black)
 ];
 export const FACES = [
   { id: 'happy',  label: 'Happy' },
@@ -86,12 +88,15 @@ export const PLAYER_LABEL_COLORS = ['#2ee6ff', '#ffb12e'];
 /** A skin is what the renderer needs: colors, pattern, face, hat. */
 export function playerSkin(look) {
   const pal = PALETTES[look.palette];
+  const pattern = PATTERNS[look.pattern].id;
+  // Fishnet is always black; dropped food and sparkles use dark grays so they still show up.
+  const colors = pattern === 'fishnet' ? ['#4a4a4a', '#2a2a2a'] : pal.colors;
   return {
-    colors: pal.colors,
-    pattern: PATTERNS[look.pattern].id,
+    colors,
+    pattern,
     face: FACES[look.face].id,
     hat: HATS[look.hat].id,
-    glow: pal.colors[0],
+    glow: pattern === 'fishnet' ? '#9a9a9a' : pal.colors[0],
   };
 }
 
