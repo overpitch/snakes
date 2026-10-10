@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Xbox Edge Simulator</title>
+<style>
+  :root { --bg: #0d0f12; --panel: #171a1f; --line: #2a2f37; --text: #e6e9ee; --dim: #8b93a1; --green: #3fbf3f; --red: #e04848; --blue: #3a7be0; --yellow: #f0c020; --xbox: #107c10; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font: 14px/1.4 system-ui, "Segoe UI", sans-serif; overflow: hidden; }
+  body { display: grid; grid-template-rows: auto 1fr auto; height: 100vh; }
+
+  /* Edge's top bar */
+  .edgebar { display: flex; align-items: center; gap: 10px; padding: 8px 14px; background: #202124; border-bottom: 1px solid #000; }
+  .edgebar .logo { font-weight: 800; color: #4cc2ff; letter-spacing: .5px; }
+  .edgebar .url { flex: 1; background: #303134; border-radius: 16px; padding: 6px 14px; color: #c9ccd1; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mode { display: flex; align-items: center; gap: 8px; padding: 4px 10px; border-radius: 14px; background: #303134; font-weight: 700; font-size: 12px; }
+  .mode svg { width: 26px; height: 18px; }
+  .mode.game { color: #7fd7ff; }
+  .mode.browse { color: #ff8c8c; }
+
+  /* The TV */
+  .stage { position: relative; display: grid; place-items: center; min-height: 0; padding: 10px; }
+  .tv { position: relative; width: 1920px; height: 1080px; transform-origin: top left; border-radius: 6px; box-shadow: 0 0 0 10px #050505, 0 20px 60px #000; overflow: hidden; background: #000; }
+  .tvwrap { position: relative; }
+  iframe { width: 1920px; height: 1080px; border: 0; display: block; pointer-events: none; }
+  .cursor { position: absolute; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%; border: 4px solid #fff; background: rgba(255,255,255,.25); box-shadow: 0 0 12px #000; pointer-events: none; display: none; }
+  .cursor.on { display: block; }
+  .ctxmenu { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 560px; background: #2b2b2b; border: 2px solid #555; border-radius: 10px; box-shadow: 0 20px 60px #000; display: none; font-size: 30px; overflow: hidden; }
+  .ctxmenu.on { display: block; }
+  .ctxmenu .item { padding: 22px 30px; border-bottom: 1px solid #3a3a3a; }
+  .ctxmenu .item.sel { background: #0f6cbd; outline: 4px solid #fff; outline-offset: -4px; }
+  .toast { position: absolute; left: 50%; bottom: 60px; transform: translateX(-50%); background: rgba(0,0,0,.85); border: 2px solid #555; padding: 18px 30px; border-radius: 12px; font-size: 30px; display: none; white-space: nowrap; }
+  .toast.on { display: block; }
+
+  /* Controllers */
+  .pads { display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; padding: 10px 14px 12px; background: #121418; border-top: 1px solid #000; }
+  .pad { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; align-items: center; }
+  .pad.rumble { animation: bzz .08s linear infinite; border-color: #fff; }
+  @keyframes bzz { 0% { transform: translate(1px, 0) } 50% { transform: translate(-1px, 1px) } 100% { transform: translate(0, -1px) } }
+  .pad h3 { margin: 0; font-size: 13px; grid-column: 1 / -1; display: flex; justify-content: space-between; color: var(--dim); }
+  .pad h3 b { color: var(--text); }
+  .stickbox { width: 64px; height: 64px; border-radius: 50%; background: #0b0d10; border: 2px solid var(--line); position: relative; grid-row: span 2; }
+  .stickdot { position: absolute; width: 22px; height: 22px; margin: -11px 0 0 -11px; left: 50%; top: 50%; border-radius: 50%; background: #c9ccd1; }
+  .btns { display: flex; gap: 6px; flex-wrap: wrap; }
+  .b { min-width: 30px; height: 30px; padding: 0 6px; border-radius: 15px; display: inline-grid; place-items: center; font-weight: 800; font-size: 12px; background: #23272e; color: var(--dim); border: 2px solid transparent; }
+  .b.on { color: #fff; border-color: #fff; }
+  .b.A.on { background: var(--green); } .b.B.on { background: var(--red); } .b.X.on { background: var(--blue); } .b.Y.on { background: var(--yellow); color: #3a2a00; }
+  .b.M.on, .b.V.on, .b.RT.on { background: #5a6170; }
+  .keys { font-size: 11px; color: var(--dim); }
+  .keys kbd { background: #23272e; border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; color: var(--text); font: inherit; }
+  .side { display: flex; flex-direction: column; gap: 6px; justify-content: center; }
+  .side button { background: #23272e; color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font: inherit; cursor: pointer; }
+  .side button:hover { border-color: #4cc2ff; }
+  .log { font-size: 11px; color: var(--dim); max-width: 220px; }
+</style>
+</head>
+<body>
+  <div class="edgebar">
+    <span class="logo">Edge · Xbox</span>
+    <span class="url" id="url">overpitch.github.io/snakes/</span>
+    <span class="mode browse" id="mode" title="Hold ☰ on a controller to switch">
+      <svg viewBox="0 0 26 18"><path d="M5 3h16c2.5 0 4 3 4 7s-1.5 6-3 6-3-3-5-3H9c-2 0-3.5 3-5 3s-3-2-3-6 1.5-7 4-7z" fill="currentColor"/><g id="xmark"><circle cx="21" cy="14" r="4.5" fill="#e04848"/><path d="M19 12l4 4M23 12l-4 4" stroke="#fff" stroke-width="1.6"/></g></svg>
+      <span id="modeText">Browsing controls</span>
+    </span>
+  </div>
+
+  <div class="stage" id="stage">
+    <div class="tvwrap" id="tvwrap">
+      <div class="tv" id="tv">
+        <iframe id="game" src="./index.html" tabindex="-1" title="Snakes"></iframe>
+        <div class="cursor" id="cursor"></div>
+        <div class="ctxmenu" id="ctx"></div>
+        <div class="toast" id="toast"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pads">
+    <div class="pad" id="pad0"></div>
+    <div class="pad" id="pad1"></div>
+    <div class="side">
+      <button id="reload">⟳ Reload game</button>
+      <button id="toggleMode">Toggle controls mode</button>
+      <div class="log" id="log">Edge starts every page in browsing controls. Hold ☰ to switch.</div>
+    </div>
+  </div>
+
+<script>
+// ---------------------------------------------------------------------------
+// Xbox Edge simulator.
+//
+// Models what the Xbox's Edge browser does with controllers, as far as we know:
+//  * "Browsing controls" (default): the Gamepad API sees no controllers. The left stick moves
+//    a pointer, A clicks, B is the browser's Back button.
+//  * "Use game controls": the page sees standard-mapping Xbox controllers via the Gamepad API.
+//    As on any browser, a controller only shows up after one of its buttons is pressed.
+//  * Edge keeps ☰ (Menu) and View for itself in both modes: holding ☰ opens Edge's menu
+//    (with the controls-mode switch), View toggles full screen. Neither reaches the page.
+// ---------------------------------------------------------------------------
+
+const BTN = { A: 0, B: 1, X: 2, Y: 3, LB: 4, RB: 5, LT: 6, RT: 7, VIEW: 8, MENU: 9, LS: 10, RS: 11, UP: 12, DOWN: 13, LEFT: 14, RIGHT: 15, HOME: 16 };
+const KEYS = [
+  { stick: { KeyW: [0, -1], KeyS: [0, 1], KeyA: [-1, 0], KeyD: [1, 0] },
+    btn: { KeyF: 'A', KeyG: 'B', KeyR: 'X', KeyT: 'Y', KeyE: 'RT', Digit1: 'MENU', Digit2: 'VIEW' } },
+  { stick: { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0] },
+    btn: { KeyL: 'A', Semicolon: 'B', KeyO: 'X', KeyP: 'Y', KeyK: 'RT', Digit9: 'MENU', Digit0: 'VIEW' } },
+];
+const LEGEND = [
+  '<kbd>WASD</kbd> stick · <kbd>F</kbd> A · <kbd>G</kbd> B · <kbd>R</kbd> X · <kbd>T</kbd> Y · <kbd>E</kbd> RT · <kbd>1</kbd> ☰ (hold) · <kbd>2</kbd> View',
+  '<kbd>Arrows</kbd> stick · <kbd>L</kbd> A · <kbd>;</kbd> B · <kbd>O</kbd> X · <kbd>P</kbd> Y · <kbd>K</kbd> RT · <kbd>9</kbd> ☰ (hold) · <kbd>0</kbd> View',
+];
+
+const $ = (id) => document.getElementById(id);
+const frame = $('game');
+const state = {
+  mode: 'browse',                 // 'browse' | 'game'
+  pads: [0, 1].map((i) => ({
+    index: i, connected: true, exposed: false, // exposed: page has "seen" it (after a press in game mode)
+    axes: [0, 0, 0, 0], buttons: Array(17).fill(false),
+    manualStick: null,             // set by the scripting API
+    menuDownAt: 0, rumbleUntil: 0,
+  })),
+  cursor: { x: 960, y: 540 },
+  ctx: null,                       // open Edge menu: { pad, sel }
+  keys: new Set(),
+  log: [],
+};
+
+// ---- Gamepad API shim inside the game frame ---------------------------------
+
+function gamepadFor(p) {
+  const buttons = p.buttons.map((down, i) => ({
+    pressed: down && i !== BTN.MENU && i !== BTN.VIEW && i !== BTN.HOME, // Edge keeps these
+    touched: down, value: down ? 1 : 0,
+  }));
+  const pad = {
+    id: 'Xbox Wireless Controller (STANDARD GAMEPAD Vendor: 045e Product: 0b13)',
+    index: p.index, connected: true, mapping: 'standard', timestamp: performance.now(),
+    axes: p.axes.slice(), buttons,
+    vibrationActuator: {
+      type: 'dual-rumble',
+      playEffect: (_type, opts = {}) => {
+        p.rumbleUntil = performance.now() + (opts.duration || 200);
+        note(`P${p.index + 1} rumble ${opts.duration || 200}ms`);
+        return Promise.resolve('complete');
+      },
+      reset: () => Promise.resolve('complete'),
+    },
+  };
+  return pad;
+}
+
+function installShim() {
+  const w = frame.contentWindow;
+  if (!w) return;
+  try {
+    w.navigator.getGamepads = () => {
+      if (state.mode !== 'game') return [null, null, null, null];
+      return state.pads.map((p) => (p.connected && p.exposed ? gamepadFor(p) : null)).concat([null, null]);
+    };
+    w.__xboxSim = true;
+  } catch (e) { note('Could not reach the game frame: ' + e.message); }
+}
+frame.addEventListener('load', () => { installShim(); note('Game loaded'); });
+installShim();
+
+// ---- Input from the keyboard (and the scripting API) ------------------------
+
+addEventListener('keydown', (e) => {
+  const mapped = KEYS.some((k) => e.code in k.stick || e.code in k.btn);
+  if (!mapped) return;
+  e.preventDefault();
+  if (e.repeat) return;
+  state.keys.add(e.code);
+});
+addEventListener('keyup', (e) => state.keys.delete(e.code));
+addEventListener('blur', () => state.keys.clear());
+
+function readKeyboard() {
+  KEYS.forEach((map, i) => {
+    const p = state.pads[i];
+    if (p.manualStick) { p.axes[0] = p.manualStick[0]; p.axes[1] = p.manualStick[1]; }
+    else {
+      let x = 0, y = 0;
+      for (const [code, [dx, dy]] of Object.entries(map.stick)) if (state.keys.has(code)) { x += dx; y += dy; }
+      const len = Math.hypot(x, y) || 1;
+      p.axes[0] = x / len * (x || y ? 1 : 0); p.axes[1] = y / len * (x || y ? 1 : 0);
+    }
+    for (const [code, name] of Object.entries(map.btn)) {
+      const held = state.keys.has(code) || (p.scripted?.[name] ?? false);
+      setButton(p, name, held);
+    }
+  });
+}
+
+function setButton(p, name, down) {
+  const i = BTN[name];
+  const was = p.buttons[i];
+  if (down === was) return;
+  p.buttons[i] = down;
+  if (down) onPress(p, name); else onRelease(p, name);
+}
+
+// ---- What Edge does with each press -----------------------------------------
+
+function onPress(p, name) {
+  if (name === 'MENU') { p.menuDownAt = performance.now(); return; }
+  if (name === 'VIEW') { toast('View: Edge toggles full screen (the game never sees View)'); return; }
+
+  if (state.ctx) { menuPress(p, name); return; }
+
+  if (state.mode === 'game') {
+    if (!p.exposed) { p.exposed = true; note(`Controller ${p.index + 1} now visible to the page`); }
+    return;
+  }
+  // Browsing controls.
+  if (name === 'A') clickAt(state.cursor.x, state.cursor.y);
+  if (name === 'B') browserBack();
+}
+
+function onRelease(p, name) {
+  if (name === 'MENU') {
+    const held = performance.now() - p.menuDownAt;
+    if (!state.ctx && held < 700) toast('☰ tap: kept by Edge (the game never sees it)');
+  }
+}
+
+function frameLoop() {
+  readKeyboard();
+  const now = performance.now();
+  for (const p of state.pads) {
+    if (p.buttons[BTN.MENU] && !state.ctx && now - p.menuDownAt > 700) openMenu(p);
+    $('pad' + p.index).classList.toggle('rumble', now < p.rumbleUntil);
+  }
+  // Browsing mode: either stick moves the pointer.
+  if (state.mode === 'browse' && !state.ctx) {
+    for (const p of state.pads) {
+      const [x, y] = p.axes;
+      if (Math.hypot(x, y) > 0.2) {
+        state.cursor.x = Math.max(0, Math.min(1920, state.cursor.x + x * 14));
+        state.cursor.y = Math.max(0, Math.min(1080, state.cursor.y + y * 14));
+        pointer('pointermove');
+      }
+    }
+  }
+  renderUi();
+  requestAnimationFrame(frameLoop);
+}
+
+function pointer(type) {
+  const w = frame.contentWindow;
+  if (!w) return;
+  const opts = { clientX: state.cursor.x, clientY: state.cursor.y, bubbles: true, pointerType: 'mouse', isPrimary: true };
+  try {
+    const target = w.document.elementFromPoint(state.cursor.x, state.cursor.y) || w.document.body;
+    target.dispatchEvent(new w.PointerEvent(type, opts));
+    if (type === 'pointerdown') target.dispatchEvent(new w.MouseEvent('mousedown', opts));
+    if (type === 'pointerup') { target.dispatchEvent(new w.MouseEvent('mouseup', opts)); target.dispatchEvent(new w.MouseEvent('click', opts)); }
+  } catch (e) { /* frame navigating */ }
+}
+function clickAt() { pointer('pointerdown'); setTimeout(() => pointer('pointerup'), 60); }
+
+// If Back ever goes past the game's own history, it lands on this entry instead of leaving the
+// simulator; that means on a real Xbox it would have left the game.
+history.pushState({ sim: true }, '');
+addEventListener('popstate', () => {
+  history.pushState({ sim: true }, '');
+  toast('⚠️ Back would have LEFT the game page!');
+  note('Back went past the game (would leave the page on a real Xbox)');
+});
+
+function browserBack() {
+  note('B in browsing controls = browser Back');
+  const before = frame.contentWindow?.location.href;
+  try { frame.contentWindow.history.back(); } catch { /* ignore */ }
+  setTimeout(() => {
+    const after = frame.contentWindow?.location.href;
+    if (after !== before) toast('⚠️ Back left the game page!');
+  }, 300);
+}
+
+// ---- Edge's hold-☰ menu -----------------------------------------------------
+
+function menuItems() {
+  return [
+    state.mode === 'game' ? 'Use browsing controls' : 'Use game controls',
+    'Reload',
+    'Close',
+  ];
+}
+function openMenu(p) { state.ctx = { pad: p.index, sel: 0 }; note(`P${p.index + 1} held ☰: Edge menu opened`); }
+function menuPress(p, name) {
+  const items = menuItems();
+  if (name === 'UP') state.ctx.sel = (state.ctx.sel + items.length - 1) % items.length;
+  if (name === 'B') { state.ctx = null; return; }
+  if (name === 'A') {
+    const choice = items[state.ctx.sel];
+    state.ctx = null;
+    if (choice.includes('game')) setMode('game');
+    else if (choice.includes('browsing')) setMode('browse');
+    else if (choice === 'Reload') reload();
+  }
+}
+// Stick up/down moves the menu selection.
+let lastMenuMove = 0;
+setInterval(() => {
+  if (!state.ctx) return;
+  const p = state.pads[state.ctx.pad];
+  const y = p.axes[1];
+  if (Math.abs(y) > 0.6 && performance.now() - lastMenuMove > 220) {
+    const n = menuItems().length;
+    state.ctx.sel = (state.ctx.sel + (y > 0 ? 1 : n - 1)) % n;
+    lastMenuMove = performance.now();
+  }
+}, 30);
+
+function setMode(m) {
+  state.mode = m;
+  if (m === 'game') for (const p of state.pads) p.exposed = false; // page sees each pad after its next press
+  note(m === 'game' ? 'Switched to GAME controls' : 'Switched to BROWSING controls');
+  toast(m === 'game' ? '🎮 Game controls on' : '🖱️ Browsing controls');
+}
+function reload() {
+  for (const p of state.pads) p.exposed = false;
+  frame.contentWindow.location.reload();
+}
+
+// ---- UI ---------------------------------------------------------------------
+
+let toastTimer = 0;
+function toast(text) {
+  const t = $('toast');
+  t.textContent = text;
+  t.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('on'), 1800);
+}
+function note(text) {
+  state.log.push(text);
+  state.log = state.log.slice(-4);
+  $('log').innerHTML = state.log.map((l) => '• ' + l).join('<br>');
+}
+
+function fitTv() {
+  const stage = $('stage').getBoundingClientRect();
+  const k = Math.min((stage.width - 30) / 1920, (stage.height - 30) / 1080);
+  $('tv').style.transform = `scale(${k})`;
+  $('tvwrap').style.width = 1920 * k + 'px';
+  $('tvwrap').style.height = 1080 * k + 'px';
+}
+addEventListener('resize', fitTv);
+
+function renderUi() {
+  const game = state.mode === 'game';
+  $('mode').className = 'mode ' + (game ? 'game' : 'browse');
+  $('xmark').style.display = game ? 'none' : '';
+  $('modeText').textContent = game ? 'Game controls' : 'Browsing controls';
+
+  const c = $('cursor');
+  c.classList.toggle('on', !game && !state.ctx);
+  c.style.left = state.cursor.x + 'px';
+  c.style.top = state.cursor.y + 'px';
+
+  const ctx = $('ctx');
+  ctx.classList.toggle('on', !!state.ctx);
+  if (state.ctx) ctx.innerHTML = menuItems().map((t, i) => `<div class="item ${i === state.ctx.sel ? 'sel' : ''}">${t}</div>`).join('');
+
+  for (const p of state.pads) {
+    const el = $('pad' + p.index);
+    const on = (n) => (p.buttons[BTN[n]] ? 'on' : '');
+    const seen = game ? (p.exposed ? '<b>visible to game</b>' : 'press any button') : 'hidden (browsing mode)';
+    el.innerHTML = `
+      <h3><span><b>Controller ${p.index + 1}</b></span><span>${seen}</span></h3>
+      <div class="stickbox"><div class="stickdot" style="transform: translate(${p.axes[0] * 18}px, ${p.axes[1] * 18}px)"></div></div>
+      <div class="btns">${['A', 'B', 'X', 'Y'].map((n) => `<span class="b ${n} ${on(n)}">${n}</span>`).join('')}
+        <span class="b RT ${on('RT')}">RT</span><span class="b M ${on('MENU')}">☰</span><span class="b V ${on('VIEW')}">⧉</span></div>
+      <div class="keys">${LEGEND[p.index]}</div>`;
+  }
+}
+
+$('reload').onclick = () => { reload(); $('reload').blur(); };
+$('toggleMode').onclick = () => { setMode(state.mode === 'game' ? 'browse' : 'game'); $('toggleMode').blur(); };
+
+fitTv();
+requestAnimationFrame(frameLoop);
+
+// ---- Scripting API (for automated play-throughs) ----------------------------
+//   xbox.press(0, 'A')            tap a button on controller 1
+//   xbox.hold(1, 'RT', true)      hold / release
+//   xbox.stick(0, 1, 0)           push controller 1's left stick right (null to release)
+//   xbox.holdMenu(0)              hold ☰ long enough to open Edge's menu
+//   xbox.mode / xbox.game         current mode / the game's window
+window.xbox = {
+  get mode() { return state.mode; },
+  get game() { return frame.contentWindow; },
+  get menuOpen() { return !!state.ctx; },
+  hold(pad, name, down) { const p = state.pads[pad]; p.scripted = p.scripted || {}; p.scripted[name] = down; },
+  async press(pad, name, ms = 500) { this.hold(pad, name, true); await sleep(ms); this.hold(pad, name, false); await sleep(400); },
+  stick(pad, x, y) { state.pads[pad].manualStick = x === null ? null : [x, y]; },
+  async holdMenu(pad) { await this.press(pad, 'MENU', 900); },
+  setMode,
+};
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+</script>
+</body>
+</html>

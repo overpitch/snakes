@@ -82,12 +82,25 @@ function toTitle() {
 
 // ---- Update
 
-/** A device that isn't anyone's yet pressed A: give it a player whose controller vanished, if any. */
+const TAKEOVER_AFTER = 4; // seconds a controller must be gone before another one may take its snake
+
+/** Note when each owner's controller went missing (a controller that comes back keeps its snake). */
+function trackMissing(owners) {
+  const now = performance.now() / 1000;
+  for (const o of owners) o.missingSince = input.state(o.device) ? null : (o.missingSince ?? now);
+}
+
+/**
+ * A device that isn't anyone's pressed A: give it a player whose controller has been gone a
+ * while. (Right after Edge switches controls modes every pad is briefly invisible, so a short
+ * absence must not let P2's pad grab P1's snake.)
+ */
 function takeOver(owners) {
   const taken = [];
+  const now = performance.now() / 1000;
   for (const id of input.ids()) {
     if (owners.some((o) => o.device === id) || !input.pressed(id, 'a')) continue;
-    const orphan = owners.find((o) => !input.state(o.device));
+    const orphan = owners.find((o) => o.missingSince !== null && now - o.missingSince > TAKEOVER_AFTER);
     if (!orphan) break;
     orphan.device = id;
     taken.push(id);
@@ -97,7 +110,8 @@ function takeOver(owners) {
 }
 
 function updateTitle() {
-  const taken = takeOver(slots.filter(Boolean));
+  trackMissing(slots.filter(Boolean));
+  const taken = slots.includes(null) ? [] : takeOver(slots.filter(Boolean)); // free slot? just join it
   for (const id of input.ids()) {
     if (taken.includes(id)) continue;
     const i = slots.findIndex((s) => s?.device === id);
@@ -138,6 +152,7 @@ function updateTitle() {
 function updatePlay() {
   // A controller vanished (e.g. Edge left "Use game controls"): hold everything until it's back
   // or another controller presses A to take that snake over.
+  trackMissing(players);
   takeOver(players);
   if (players.some((p) => !input.state(p.device))) return false;
 

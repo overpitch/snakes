@@ -42,11 +42,11 @@ export class World {
     this.food.push({ x, y, value, r: 3.5 + Math.sqrt(value) * 3, color, phase: Math.random() * 6.28, eaten: false });
   }
 
-  /** Squared distance from (x, y) to the nearest living snake segment (sampled). */
-  crowding(x, y) {
+  /** Squared distance from (x, y) to the nearest living snake segment (sampled), skipping `ignore`. */
+  crowding(x, y, ignore = () => false) {
     let min = Infinity;
     for (const s of this.snakes) {
-      if (!s.alive) continue;
+      if (!s.alive || ignore(s)) continue;
       for (let i = 0; i < s.segCount; i += 3) {
         const dx = s.segs[2 * i] - x, dy = s.segs[2 * i + 1] - y;
         const d = dx * dx + dy * dy;
@@ -56,18 +56,26 @@ export class World {
     return min;
   }
 
-  /** A spawn point away from other snakes; if `near` is given, try to land close to it. */
+  /**
+   * A spawn point away from other snakes. With `near` (co-op), land close to that point,
+   * only steering clear of bots and leaving a little room around the teammate.
+   */
   safeSpawnPoint(near) {
     let best = null, bestD = -1;
-    for (let tries = 0; tries < 30; tries++) {
-      let p;
-      if (near && tries < 20) {
-        const a = Math.random() * Math.PI * 2, d = 250 + Math.random() * 250;
-        p = { x: near.x + Math.cos(a) * d, y: near.y + Math.sin(a) * d };
-        if (Math.hypot(p.x, p.y) > this.R * 0.8) continue;
-      } else {
-        p = this.randomPoint(0.75);
+    if (near) {
+      const isPlayer = (s) => s.player !== null;
+      for (let tries = 0; tries < 40; tries++) {
+        const a = Math.random() * Math.PI * 2, d = 220 + Math.random() * 280;
+        const p = { x: near.x + Math.cos(a) * d, y: near.y + Math.sin(a) * d };
+        if (Math.hypot(p.x, p.y) > this.R * 0.85) continue;
+        const crowd = Math.min(this.crowding(p.x, p.y, (s) => !isPlayer(s)) * 1.44, this.crowding(p.x, p.y, isPlayer)); // bots 250+ away, teammate 300+
+        if (crowd > 300 * 300) return p;
+        if (crowd > bestD) { bestD = crowd; best = p; }
       }
+      if (best) return best;
+    }
+    for (let tries = 0; tries < 30; tries++) {
+      const p = this.randomPoint(0.75);
       const crowd = this.crowding(p.x, p.y);
       if (crowd > 380 * 380) return p;
       if (crowd > bestD) { bestD = crowd; best = p; }

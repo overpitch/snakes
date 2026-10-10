@@ -27,6 +27,15 @@ python3 serve.py
 Then open http://localhost:8080. No controller? Keyboard works for testing:
 P1 = A/D steer, Space boost & join · P2 = ←/→ steer, Enter boost & join · Esc = pause.
 
+## Xbox simulator
+
+`xbox.html` (https://overpitch.github.io/snakes/xbox.html) runs the game on a pretend 1920×1080 TV
+with two virtual Xbox controllers, behaving like Edge on Xbox: it starts in browsing controls
+(stick = pointer, B = browser Back, no controllers visible to the game), holding ☰ opens Edge's
+menu with "Use game controls", controllers only appear after a button press, and Edge keeps ☰
+and View for itself. Controller 1 = WASD + F/G/R/T (A/B/X/Y), E = RT, hold 1 = ☰.
+Controller 2 = arrows + L/;/O/P, K = RT, hold 9 = ☰. Scriptable via `window.xbox` for tests.
+
 ## Code
 
 Plain JavaScript modules, no build step.

@@ -259,11 +259,11 @@ export function drawHud(ctx, view, p, g) {
 
   // Controller vanished (e.g. Edge switched back to browsing controls).
   if (g.lost(p)) {
-    ctx.fillStyle = 'rgba(5,8,14,0.6)';
+    ctx.fillStyle = 'rgba(5,8,14,0.35)';
     ctx.fillRect(x, y, w, h);
     ctx.save();
     const k = Math.min(1, w / (1240 * u));
-    ctx.translate(x + w / 2, y + h / 2);
+    ctx.translate(x + w / 2, y + h * 0.22); // above the snake, which sits mid-screen
     ctx.scale(k, k);
     drawControllerHelp(ctx, 0, 0, u);
     ctx.restore();
