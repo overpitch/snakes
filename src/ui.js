@@ -122,15 +122,33 @@ export function drawTitle(ctx, W, H, st) {
 
   // Bottom prompt.
   const pulse = 1 + Math.sin(t * 5) * 0.04;
-  if (joined === 1) rich(ctx, ['Press ', { btn: 'menu' }, ' to play solo!'], W / 2, H * 0.93, 54 * u * pulse, '#fff');
-  else if (joined === 2) rich(ctx, ['Press ', { btn: 'menu' }, ' to play!'], W / 2, H * 0.93, 54 * u * pulse, '#fff');
-  else if (st.padCount === 0) text(ctx, 'Turn on a controller, then press any button', W / 2, H * 0.93, 38 * u, '#c9d1e0');
-  else rich(ctx, ['Press ', { btn: 'A' }, ' to join'], W / 2, H * 0.93, 54 * u * pulse, '#fff');
+  if (st.countdown !== null) {
+    const n = Math.ceil(st.countdown);
+    text(ctx, `Starting in ${n}…`, W / 2, H * 0.915, 60 * u * (1 + (st.countdown % 1) * 0.15), '#fff', { weight: 900 });
+    if (joined === 1) rich(ctx, ['Want a friend? Press ', { btn: 'A' }, ' to join too!'], W / 2, H * 0.97, 28 * u, 'rgba(220,228,240,0.8)');
+  } else if (joined > 0) {
+    rich(ctx, ['Press ', { btn: 'A' }, ' when you\'re ready!'], W / 2, H * 0.93, 54 * u * pulse, '#fff');
+  } else if (st.padCount === 0) {
+    drawControllerHelp(ctx, W / 2, H * 0.915, u);
+  } else {
+    rich(ctx, ['Press ', { btn: 'A' }, ' to join'], W / 2, H * 0.93, 54 * u * pulse, '#fff');
+  }
 
   const rec = [];
   if (st.save.best) rec.push(`🏆 Best ${fmt(st.save.best)}`);
   if (st.save.teamBest) rec.push(`🤝 Team best ${fmt(st.save.teamBest)}`);
-  if (rec.length) text(ctx, rec.join('     '), W / 2, H * 0.985, 24 * u, 'rgba(201,209,224,0.75)');
+  if (rec.length && st.countdown === null && !(joined === 0 && st.padCount === 0)) {
+    text(ctx, rec.join('     '), W / 2, H * 0.985, 24 * u, 'rgba(201,209,224,0.75)');
+  }
+}
+
+/** Edge on Xbox starts pages in "browsing controls" (stick = mouse pointer); the game can't see the pad until you switch. */
+export function drawControllerHelp(ctx, cx, cy, u) {
+  const w = 1180 * u, h = 132 * u;
+  panel(ctx, cx - w / 2, cy - h / 2, w, h, 24 * u, 'rgba(12,16,26,0.92)', '#ffe14d', 3 * u);
+  text(ctx, '🎮 Controller not working?', cx, cy - 30 * u, 34 * u, '#ffe14d', { weight: 900 });
+  rich(ctx, ['Hold ', { btn: 'menu' }, ' until a menu pops up, pick “Use game controls”, then press ', { btn: 'A' }],
+    cx, cy + 28 * u, 30 * u, '#fff');
 }
 
 function pickerPill(ctx, cx, cy, u, btn, options, selected) {
@@ -185,7 +203,15 @@ function drawCard(ctx, x, y, w, h, u, i, st) {
       text(ctx, '▶', x + w - 60 * u + nudge, ry, 30 * u, color);
     }
   });
-  rich(ctx, [{ btn: 'B' }, ' leave'], x + w / 2, y + h - 34 * u, 24 * u, 'rgba(220,228,240,0.6)');
+  const fy = y + h - 44 * u;
+  if (slot.ready) {
+    panel(ctx, x + w / 2 - 150 * u, fy - 30 * u, 300 * u, 60 * u, 30 * u, '#3fbf3f', '#fff', 3 * u);
+    text(ctx, '✓ READY!', x + w / 2, fy + 2 * u, 34 * u, '#fff', { weight: 900 });
+  } else {
+    const pulse = 1 + Math.sin(st.t * 5 + i) * 0.05;
+    rich(ctx, [{ btn: 'A' }, ' Ready!'], x + w / 2 - 70 * u, fy, 34 * u * pulse, '#fff');
+    rich(ctx, [{ btn: 'B' }, ' leave'], x + w / 2 + 150 * u, fy, 24 * u, 'rgba(220,228,240,0.6)');
+  }
 }
 
 // ---- In-game HUD
@@ -230,6 +256,18 @@ export function drawHud(ctx, view, p, g) {
   // Arrow toward your partner when they're off-screen.
   const partner = g.players.find((q) => q !== p);
   if (partner?.snake?.alive) drawPartnerArrow(ctx, view, p.cam, partner, u, m);
+
+  // Controller vanished (e.g. Edge switched back to browsing controls).
+  if (g.lost(p)) {
+    ctx.fillStyle = 'rgba(5,8,14,0.6)';
+    ctx.fillRect(x, y, w, h);
+    ctx.save();
+    const k = Math.min(1, w / (1240 * u));
+    ctx.translate(x + w / 2, y + h / 2);
+    ctx.scale(k, k);
+    drawControllerHelp(ctx, 0, 0, u);
+    ctx.restore();
+  }
 
   // Popped!
   if (!s?.alive) {
@@ -302,6 +340,6 @@ export function drawPause(ctx, W, H) {
   ctx.fillStyle = 'rgba(5,8,14,0.7)';
   ctx.fillRect(0, 0, W, H);
   text(ctx, 'Paused', W / 2, H * 0.4, 120 * u, '#fff', { weight: 900 });
-  rich(ctx, [{ btn: 'menu' }, ' Keep playing'], W / 2, H * 0.55, 48 * u, '#fff');
+  rich(ctx, [{ btn: 'Y' }, ' Keep playing'], W / 2, H * 0.55, 48 * u, '#fff');
   rich(ctx, [{ btn: 'B' }, ' Back to title'], W / 2, H * 0.64, 36 * u, 'rgba(220,228,240,0.8)');
 }

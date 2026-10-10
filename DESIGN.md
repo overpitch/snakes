@@ -35,9 +35,12 @@ need very little reading.
 |---|---|
 | Steer | Left stick (the snake heads where you point) or D-pad |
 | Boost | **A** or **RT** (costs length, leaves a trail of food) |
-| Join / confirm | **A** |
+| Join, then ready up | **A** (game starts 3 s after everyone's ready) |
 | Back / leave | **B** |
-| Pause | **Menu (☰)** |
+| Pause | **Y** |
+
+Edge on Xbox keeps **☰** and **View** for itself (holding ☰ toggles "Use game controls"),
+so the game never depends on them.
 
 ## Difficulty
 
@@ -58,9 +61,9 @@ need very little reading.
 ## Flow
 
 1. **Title**: each player presses **A** to join, which opens their snake picker card
-2. **Pick**: pick a mode (Versus / Co-op) and difficulty, then press **☰** to play
+2. **Pick**: pick a mode (Versus / Co-op) and difficulty, then press **A** when ready
 3. **Play**: endless; on death the snake pops and you're back in after ~1 second
-4. **Pause** (☰): resume, or go back to the title
+4. **Pause** (Y): resume, or go back to the title
 
 ## Open questions
 

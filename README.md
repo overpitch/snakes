@@ -5,13 +5,18 @@ made to play in Microsoft Edge on an Xbox. See [DESIGN.md](DESIGN.md).
 
 ## Play
 
-Open the game's web address in Edge on the Xbox, turn on both controllers, and:
+Game address: https://overpitch.github.io/snakes/ (use it in Edge on the Xbox).
+
+**First, switch Edge to game controls.** Edge starts pages in "browsing controls" (the stick
+moves a mouse pointer and the game can't see the controller). Hold **☰ (Menu)** until a menu
+pops up, pick **Use game controls**, and press **A**. Holding ☰ again switches back.
 
 1. Each player presses **A** to join and picks a look (stick ↕ chooses the row, ↔ changes it)
 2. **X** switches Versus / Co-op, **Y** switches Easy / Normal / Hard (only one player joined = Solo, full screen)
-3. Press **☰ (Menu)** to play
+3. Press **A** again when ready; the game starts 3 seconds after everyone's ready
 
-In game: **left stick** steers, **A** or **RT** boosts, **☰** pauses.
+In game: **left stick** steers, **A** or **RT** boosts, **Y** pauses.
+(The game avoids ☰ and View because Edge on Xbox keeps those buttons for itself.)
 
 ## Run locally
 
@@ -20,7 +25,7 @@ python3 serve.py
 ```
 
 Then open http://localhost:8080. No controller? Keyboard works for testing:
-P1 = A/D steer, Space boost & join · P2 = ←/→ steer, Enter boost & join · Esc = start/pause.
+P1 = A/D steer, Space boost & join · P2 = ←/→ steer, Enter boost & join · Esc = pause.
 
 ## Code
 

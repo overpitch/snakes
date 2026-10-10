@@ -36,6 +36,8 @@ let paused = false;
 let world = new World({ difficulty: 'normal' }); // the title screen plays bots in the background
 const slots = [null, null];          // joined devices: { device, row }
 let players = [];
+let startAt = null;                  // title countdown end (seconds), once everyone's ready
+const START_COUNTDOWN = 3;
 let mode = 'versus';                 // this game's mode: 'solo' with one player, else save.mode
 let feed = [];                       // [{ text, time }]
 const titleCam = { x: 0, y: 0, zoom: 0.8 };
@@ -72,6 +74,7 @@ function spawnPlayer(p, mass) {
 }
 
 function toTitle() {
+  for (const slot of slots) if (slot) slot.ready = false;
   screen = 'title';
   paused = false;
   world = new World({ difficulty: 'normal' });
@@ -85,12 +88,16 @@ function updateTitle() {
     if (i < 0) {
       if (input.pressed(id, 'a')) {
         const free = slots.indexOf(null);
-        if (free >= 0) { slots[free] = { device: id, row: 0 }; input.rumble(id, 120, 0.2, 0.5); }
+        if (free >= 0) { slots[free] = { device: id, row: 0, ready: false }; input.rumble(id, 120, 0.2, 0.5); }
       }
       continue;
     }
     const slot = slots[i], look = save.looks[i];
-    if (input.pressed(id, 'b')) { slots[i] = null; continue; }
+    if (input.pressed(id, 'b')) {
+      if (slot.ready) slot.ready = false; else slots[i] = null;
+      continue;
+    }
+    if (input.pressed(id, 'a')) { slot.ready = !slot.ready; input.rumble(id, 100, 0.1, 0.4); }
     if (input.pressed(id, 'up')) slot.row = (slot.row + LOOK_ROWS.length - 1) % LOOK_ROWS.length;
     if (input.pressed(id, 'down')) slot.row = (slot.row + 1) % LOOK_ROWS.length;
     const dir = input.pressed(id, 'right') - input.pressed(id, 'left');
@@ -101,12 +108,19 @@ function updateTitle() {
     }
     if (input.pressed(id, 'x')) { save.mode = MODES[(MODES.indexOf(save.mode) + 1) % MODES.length]; persist(); }
     if (input.pressed(id, 'y')) { save.difficulty = DIFFICULTIES[(DIFFICULTIES.indexOf(save.difficulty) + 1) % DIFFICULTIES.length]; persist(); }
+    // Edge on Xbox keeps the Menu button for itself, so A ("ready") is the real way to start.
     if (input.pressed(id, 'menu')) { startGame(); return; }
   }
+  // Everyone ready -> short countdown (so a second player can still jump in), then go.
+  const joined = slots.filter(Boolean);
+  const now = performance.now() / 1000;
+  if (!joined.length || !joined.every((s) => s.ready)) startAt = null;
+  else if (startAt === null) startAt = now + START_COUNTDOWN;
+  else if (now >= startAt) { startAt = null; startGame(); }
 }
 
 function updatePlay() {
-  if (players.some((p) => input.pressed(p.device, 'menu'))) paused = !paused;
+  if (players.some((p) => input.pressed(p.device, 'y') || input.pressed(p.device, 'menu'))) paused = !paused;
   if (paused) {
     if (players.some((p) => input.pressed(p.device, 'b') || input.pressed(p.device, 'view'))) toTitle();
     return false;
@@ -202,12 +216,13 @@ function render(dt) {
     drawTitle(ctx, W, H, {
       t: performance.now() / 1000, slots, looks: save.looks, mode: save.mode, difficulty: save.difficulty,
       save, padCount: input.padCount(), deviceLabel: (id) => input.label(id),
+      countdown: startAt === null ? null : Math.max(0, startAt - performance.now() / 1000),
     });
     return;
   }
 
   const labels = new Map(players.map((p) => [p.snake, { text: `P${p.index + 1}`, color: p.labelColor }]));
-  const g = { world, players, mode, feed, u, respawnDelay: CONFIG.respawnDelay };
+  const g = { world, players, mode, feed, u, respawnDelay: CONFIG.respawnDelay, lost: (p) => !input.state(p.device) };
   for (const p of players) {
     const view = viewFor(p);
     if (!paused) updateCam(p.cam, p.snake, view, dt);
