@@ -14,6 +14,7 @@ need very little reading.
 | Area | Decision |
 |---|---|
 | Platform | Web page (plain HTML + JavaScript, no build step) opened in Edge on Xbox |
+| Hosting | GitHub Pages: https://overpitch.github.io/snakes/ (push to `main` to update) |
 | Input | Xbox controllers via the Gamepad API (keyboard only as a dev fallback) |
 | Screen | Split-screen: left/right halves, each camera follows one snake. One player = full screen |
 | Arena | Big circular arena with ~14 AI snakes, like slither.io |
@@ -51,7 +52,7 @@ need very little reading.
 
 - **Colors & patterns:** preset combos; patterns are stripes, spots, rainbow and solid
 - **Faces:** happy, angry, sleepy, googly, sunglasses
-- **Hats:** none, crown, party hat, wizard hat, bow tie, propeller cap
+- **Hats:** none, crown, party hat, top hat, cap, bow, flower
 - Chosen with the stick + A on a big visual picker; remembered between sessions
 
 ## Flow
@@ -63,7 +64,5 @@ need very little reading.
 
 ## Open questions
 
-- **Hosting**: the Xbox's Edge browser needs a web address to open. Options:
-  a free website (GitHub Pages) at a fixed URL, or the Mac serving it over home Wi-Fi.
 - Sound & music (not chosen for v1, easy to add later).
 - Power-ups (not chosen for v1).
